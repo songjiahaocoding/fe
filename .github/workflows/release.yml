@@ -99,14 +99,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          gh release view "$TAG" >/dev/null 2>&1 || \
-            gh release create "$TAG" --title "fe ${TAG}" --notes "Automated fe release ${TAG}."
+          gh release view "$TAG" --repo songjiahaocoding/fe >/dev/null 2>&1 || \
+            gh release create "$TAG" --repo songjiahaocoding/fe --title "fe ${TAG}" --notes "Automated fe release ${TAG}."
 
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
-        run: gh release upload "$TAG" release-assets/* --clobber
+        run: gh release upload "$TAG" release-assets/* --repo songjiahaocoding/fe --clobber
 
       - name: Upload Homebrew formula artifact
         uses: actions/upload-artifact@v4
