@@ -158,40 +158,40 @@ jobs:
           mac_intel_sha="$(cat ../release-assets/${mac_intel_asset}.sha256)"
           mac_arm_sha="$(cat ../release-assets/${mac_arm_asset}.sha256)"
 
-          cat > Formula/fe.rb <<EOF
-class Fe < Formula
-  desc "Agent-friendly structured file editor for JSON and YAML"
-  homepage "https://github.com/songjiahaocoding/fe"
-  version "${version}"
+          cat > Formula/fe.rb <<FORMULA
+          class Fe < Formula
+            desc "Agent-friendly structured file editor for JSON and YAML"
+            homepage "https://github.com/songjiahaocoding/fe"
+            version "${version}"
 
-  on_macos do
-    if Hardware::CPU.arm?
-      url "${base_url}/${mac_arm_asset}"
-      sha256 "${mac_arm_sha}"
-    else
-      url "${base_url}/${mac_intel_asset}"
-      sha256 "${mac_intel_sha}"
-    end
-  end
+            on_macos do
+              if Hardware::CPU.arm?
+                url "${base_url}/${mac_arm_asset}"
+                sha256 "${mac_arm_sha}"
+              else
+                url "${base_url}/${mac_intel_asset}"
+                sha256 "${mac_intel_sha}"
+              end
+            end
 
-  on_linux do
-    if Hardware::CPU.intel?
-      url "${base_url}/${linux_asset}"
-      sha256 "${linux_sha}"
-    else
-      odie "fe does not provide a Linux ARM64 Homebrew bottle yet"
-    end
-  end
+            on_linux do
+              if Hardware::CPU.intel?
+                url "${base_url}/${linux_asset}"
+                sha256 "${linux_sha}"
+              else
+                odie "fe does not provide a Linux ARM64 Homebrew bottle yet"
+              end
+            end
 
-  def install
-    bin.install "fe"
-  end
+            def install
+              bin.install "fe"
+            end
 
-  test do
-    assert_match "Usage: fe", shell_output("#{bin}/fe --help")
-  end
-end
-EOF
+            test do
+              assert_match "Usage: fe", shell_output("#{bin}/fe --help")
+            end
+          end
+          FORMULA
 
           git add Formula/fe.rb
           if git diff --cached --quiet; then
