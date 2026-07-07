@@ -32,7 +32,7 @@ pub enum Command {
         path: String,
         #[arg(long, value_enum)]
         format: Option<FormatArg>,
-        #[arg(long)]
+        #[arg(long, help = "Print scalar values without JSON/YAML quoting")]
         raw: bool,
     },
     /// Return success when a path exists.
@@ -51,11 +51,18 @@ pub enum Command {
         value_file: Option<PathBuf>,
         #[arg(long, value_enum)]
         format: Option<FormatArg>,
-        #[arg(long)]
+        #[arg(long, help = "Treat VALUE as a raw string instead of JSON/YAML")]
         raw: bool,
-        #[arg(long)]
+        #[arg(long, help = "Write changes back to FILE (default)")]
         write: bool,
-        #[arg(long)]
+        #[arg(
+            long,
+            alias = "stdout",
+            conflicts_with = "write",
+            help = "Print the changed document instead of writing FILE"
+        )]
+        dry_run: bool,
+        #[arg(long, help = "Fail if any path segment is missing")]
         no_create: bool,
     },
     /// Delete a key or array element.
@@ -64,9 +71,16 @@ pub enum Command {
         path: String,
         #[arg(long, value_enum)]
         format: Option<FormatArg>,
-        #[arg(long)]
+        #[arg(long, help = "Write changes back to FILE (default)")]
         write: bool,
-        #[arg(long)]
+        #[arg(
+            long,
+            alias = "stdout",
+            conflicts_with = "write",
+            help = "Print the changed document instead of writing FILE"
+        )]
+        dry_run: bool,
+        #[arg(long, help = "Succeed when the path is already missing")]
         ignore_missing: bool,
     },
     /// Append a value to an array.
@@ -78,11 +92,18 @@ pub enum Command {
         value_file: Option<PathBuf>,
         #[arg(long, value_enum)]
         format: Option<FormatArg>,
-        #[arg(long)]
+        #[arg(long, help = "Treat VALUE as a raw string instead of JSON/YAML")]
         raw: bool,
-        #[arg(long)]
+        #[arg(long, help = "Write changes back to FILE (default)")]
         write: bool,
-        #[arg(long)]
+        #[arg(
+            long,
+            alias = "stdout",
+            conflicts_with = "write",
+            help = "Print the changed document instead of writing FILE"
+        )]
+        dry_run: bool,
+        #[arg(long, help = "Create the target array if it is missing")]
         create: bool,
     },
     /// Insert a value before an array index, such as $.items[0].
@@ -94,9 +115,16 @@ pub enum Command {
         value_file: Option<PathBuf>,
         #[arg(long, value_enum)]
         format: Option<FormatArg>,
-        #[arg(long)]
+        #[arg(long, help = "Treat VALUE as a raw string instead of JSON/YAML")]
         raw: bool,
-        #[arg(long)]
+        #[arg(long, help = "Write changes back to FILE (default)")]
         write: bool,
+        #[arg(
+            long,
+            alias = "stdout",
+            conflicts_with = "write",
+            help = "Print the changed document instead of writing FILE"
+        )]
+        dry_run: bool,
     },
 }

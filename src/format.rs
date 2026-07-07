@@ -24,8 +24,28 @@ pub fn parse_format(path: &Path, format: Option<FormatArg>) -> Result<DocumentFo
     match path.extension().and_then(|extension| extension.to_str()) {
         Some("json") => Ok(DocumentFormat::Json),
         Some("yaml" | "yml") => Ok(DocumentFormat::Yaml),
-        _ => Err(FormatEditError::UnknownFormat(path.display().to_string())),
+        _ => detect_format(path),
     }
+}
+
+fn detect_format(path: &Path) -> Result<DocumentFormat> {
+    let input = fs::read_to_string(path)?;
+    let trimmed = input.trim_start();
+
+    if trimmed.starts_with('{') || trimmed.starts_with('[') {
+        return Ok(DocumentFormat::Json);
+    }
+    if trimmed.starts_with("---") {
+        return Ok(DocumentFormat::Yaml);
+    }
+    if serde_json::from_str::<Value>(&input).is_ok() {
+        return Ok(DocumentFormat::Json);
+    }
+    if serde_yaml::from_str::<Value>(&input).is_ok() {
+        return Ok(DocumentFormat::Yaml);
+    }
+
+    Err(FormatEditError::UnknownFormat(path.display().to_string()))
 }
 
 pub fn load_document(path: &Path, format: DocumentFormat) -> Result<Value> {

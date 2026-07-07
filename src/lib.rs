@@ -71,7 +71,8 @@ fn execute(cli: Cli) -> Result<()> {
             value_file,
             format,
             raw,
-            write,
+            write: _,
+            dry_run,
             no_create,
         } => {
             let format = parse_format(file.as_path(), format)?;
@@ -79,22 +80,23 @@ fn execute(cli: Cli) -> Result<()> {
             let path = path.parse()?;
             let value = parse_input_value(value, value_file.as_deref(), raw)?;
             edit::set(&mut document, &path, value, !no_create)?;
-            save_document(file.as_path(), format, &document, write)?;
+            save_document(file.as_path(), format, &document, !dry_run)?;
         }
         Command::Delete {
             file,
             path,
             format,
-            write,
+            write: _,
+            dry_run,
             ignore_missing,
         } => {
             let format = parse_format(file.as_path(), format)?;
             let mut document = load_document(file.as_path(), format)?;
             let path = path.parse()?;
             match edit::delete(&mut document, &path) {
-                Ok(()) => save_document(file.as_path(), format, &document, write)?,
+                Ok(()) => save_document(file.as_path(), format, &document, !dry_run)?,
                 Err(error::FormatEditError::PathNotFound(_)) if ignore_missing => {
-                    save_document(file.as_path(), format, &document, write)?;
+                    save_document(file.as_path(), format, &document, !dry_run)?;
                 }
                 Err(err) => return Err(err),
             }
@@ -106,7 +108,8 @@ fn execute(cli: Cli) -> Result<()> {
             value_file,
             format,
             raw,
-            write,
+            write: _,
+            dry_run,
             create,
         } => {
             let format = parse_format(file.as_path(), format)?;
@@ -114,7 +117,7 @@ fn execute(cli: Cli) -> Result<()> {
             let path = path.parse()?;
             let value = parse_input_value(value, value_file.as_deref(), raw)?;
             edit::append(&mut document, &path, value, create)?;
-            save_document(file.as_path(), format, &document, write)?;
+            save_document(file.as_path(), format, &document, !dry_run)?;
         }
         Command::Insert {
             file,
@@ -123,14 +126,15 @@ fn execute(cli: Cli) -> Result<()> {
             value_file,
             format,
             raw,
-            write,
+            write: _,
+            dry_run,
         } => {
             let format = parse_format(file.as_path(), format)?;
             let mut document = load_document(file.as_path(), format)?;
             let path = path.parse()?;
             let value = parse_input_value(value, value_file.as_deref(), raw)?;
             edit::insert(&mut document, &path, value)?;
-            save_document(file.as_path(), format, &document, write)?;
+            save_document(file.as_path(), format, &document, !dry_run)?;
         }
     }
 
