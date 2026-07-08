@@ -5,13 +5,26 @@ pub mod format;
 pub mod path;
 pub mod query;
 
+use std::ffi::OsString;
+
 use clap::Parser;
 use cli::{Cli, Command, ErrorFormat};
 use error::Result;
 use format::{load_document, parse_format, parse_input_value, print_value, save_document};
 
 pub fn run() -> i32 {
-    let cli = Cli::parse();
+    let error_format = requested_error_format(std::env::args_os());
+    let cli = match Cli::try_parse() {
+        Ok(cli) => cli,
+        Err(err) => {
+            if err.use_stderr() && error_format == ErrorFormat::Json {
+                print_parse_error_json(&err);
+            } else if let Err(print_err) = err.print() {
+                eprintln!("failed to print CLI error: {print_err}");
+            }
+            return if err.use_stderr() { 2 } else { 0 };
+        }
+    };
     let error_format = cli.error_format;
     match execute(cli) {
         Ok(()) => 0,
@@ -20,6 +33,34 @@ pub fn run() -> i32 {
             1
         }
     }
+}
+
+fn requested_error_format<I>(args: I) -> ErrorFormat
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let mut args = args.into_iter();
+    while let Some(arg) = args.next() {
+        if arg == "--error-format=json" {
+            return ErrorFormat::Json;
+        }
+        if arg == "--error-format" {
+            return match args.next().and_then(|value| value.into_string().ok()) {
+                Some(value) if value == "json" => ErrorFormat::Json,
+                _ => ErrorFormat::Text,
+            };
+        }
+    }
+    ErrorFormat::Text
+}
+
+fn print_parse_error_json(err: &clap::Error) {
+    let payload = serde_json::json!({
+        "error": "argument_error",
+        "message": err.to_string(),
+        "kind": format!("{:?}", err.kind()),
+    });
+    eprintln!("{payload}");
 }
 
 fn print_error(err: &error::FormatEditError, format: ErrorFormat) {
@@ -31,6 +72,9 @@ fn print_error(err: &error::FormatEditError, format: ErrorFormat) {
 
 fn execute(cli: Cli) -> Result<()> {
     match cli.command {
+        Command::Version => {
+            println!("fe {}", env!("CARGO_PKG_VERSION"));
+        }
         Command::Get {
             file,
             path,

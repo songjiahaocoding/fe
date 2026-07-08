@@ -87,3 +87,74 @@ fn extensionless_json_is_detected_from_contents() {
     );
     assert_eq!(String::from_utf8_lossy(&output.stdout), "hello\n");
 }
+
+#[test]
+fn version_flag_prints_package_version() {
+    let output = Command::new(env!("CARGO_BIN_EXE_fe"))
+        .arg("--version")
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        format!("fe {}\n", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[test]
+fn version_subcommand_prints_package_version() {
+    let output = Command::new(env!("CARGO_BIN_EXE_fe"))
+        .arg("version")
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        format!("fe {}\n", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[test]
+fn stdout_alias_is_shown_in_mutation_help() {
+    let output = Command::new(env!("CARGO_BIN_EXE_fe"))
+        .args(["set", "--help"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("--dry-run"));
+    assert!(stdout.contains("--stdout"));
+}
+
+#[test]
+fn parse_errors_respect_json_error_format() {
+    let file = temp_file("parse-error.json", r#"{"server":{"port":3000}}"#);
+
+    let output = Command::new(env!("CARGO_BIN_EXE_fe"))
+        .args([
+            "--error-format",
+            "json",
+            "get",
+            file.to_str().unwrap(),
+            "$.server.port",
+            "--not-real",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(stderr["error"], "argument_error");
+    assert_eq!(stderr["kind"], "UnknownArgument");
+}

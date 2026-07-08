@@ -29,10 +29,10 @@ brew install songjiahaocoding/tap/fe
 
 This installs a prebuilt `fe` binary, so users do not need a Rust toolchain.
 
-You can also install v0.2.0 directly from GitHub with Cargo:
+You can also install v0.2.1 directly from GitHub with Cargo:
 
 ```sh
-cargo install --git https://github.com/songjiahaocoding/fe --tag v0.2.0 --locked
+cargo install --git https://github.com/songjiahaocoding/fe --tag v0.2.1 --locked
 ```
 
 ## Quick Start
@@ -41,6 +41,12 @@ Read a value:
 
 ```sh
 fe get config.json '$.server.host' --raw
+```
+
+Check the installed version:
+
+```sh
+fe --version
 ```
 
 Set a value:

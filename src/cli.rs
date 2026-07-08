@@ -17,6 +17,7 @@ pub enum ErrorFormat {
 #[derive(Debug, Parser)]
 #[command(name = "fe")]
 #[command(about = "Agent-friendly structured file editor for JSON and YAML")]
+#[command(version)]
 pub struct Cli {
     #[arg(long, value_enum, default_value = "text", global = true)]
     pub error_format: ErrorFormat,
@@ -26,6 +27,8 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Print the fe version.
+    Version,
     /// Read one or more values at a JSONPath-style path.
     Get {
         file: PathBuf,
@@ -57,7 +60,7 @@ pub enum Command {
         write: bool,
         #[arg(
             long,
-            alias = "stdout",
+            visible_alias = "stdout",
             conflicts_with = "write",
             help = "Print the changed document instead of writing FILE"
         )]
@@ -75,7 +78,7 @@ pub enum Command {
         write: bool,
         #[arg(
             long,
-            alias = "stdout",
+            visible_alias = "stdout",
             conflicts_with = "write",
             help = "Print the changed document instead of writing FILE"
         )]
@@ -98,7 +101,7 @@ pub enum Command {
         write: bool,
         #[arg(
             long,
-            alias = "stdout",
+            visible_alias = "stdout",
             conflicts_with = "write",
             help = "Print the changed document instead of writing FILE"
         )]
@@ -121,7 +124,7 @@ pub enum Command {
         write: bool,
         #[arg(
             long,
-            alias = "stdout",
+            visible_alias = "stdout",
             conflicts_with = "write",
             help = "Print the changed document instead of writing FILE"
         )]
