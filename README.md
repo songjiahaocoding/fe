@@ -29,10 +29,10 @@ brew install songjiahaocoding/tap/fe
 
 This installs a prebuilt `fe` binary, so users do not need a Rust toolchain.
 
-You can also install v0.2.1 directly from GitHub with Cargo:
+You can also install v0.3 directly from GitHub with Cargo:
 
 ```sh
-cargo install --git https://github.com/songjiahaocoding/fe --tag v0.2.1 --locked
+cargo install --git https://github.com/songjiahaocoding/fe --tag v0.3 --locked
 ```
 
 ## Quick Start
@@ -76,8 +76,21 @@ fe delete config.yaml '$.features.legacy'
 Preview an edit without writing the file:
 
 ```sh
-fe set config.json '$.server.port' 8080 --dry-run
+fe preview set config.json '$.server.port' 8080
 ```
+
+`preview` works for every structured mutation, including a single deterministic
+edit with no wildcard or regular expression. It prints the minimal unified diff
+that the corresponding write command would produce and never writes the file:
+
+```sh
+fe preview delete config.yaml '$.features.legacy'
+fe preview append config.json '$.plugins' '{"name":"auth"}'
+fe preview insert config.json '$.plugins[0]' '{"name":"core"}'
+```
+
+The existing `--dry-run` / `--stdout` option remains available when the complete
+serialized document is more useful than a diff.
 
 Get machine-readable errors:
 
@@ -99,6 +112,66 @@ Example error:
 - `delete` removes an object key or array element
 - `append` adds a value to an array
 - `insert` inserts a value before an array index
+- `preview` shows the exact diff without writing
+- `batch` applies one structured operation to multiple nodes or files
+
+## Batch Editing
+
+Use `--file` more than once to edit explicit files:
+
+```sh
+fe batch set \
+  --file config/dev.json \
+  --file config/prod.json \
+  '$.services[*].enabled' false
+```
+
+Or select files below a directory:
+
+```sh
+fe batch put \
+  --root ./configs \
+  --include '**/*.yaml' \
+  --exclude '**/vendor/**' \
+  '$.services[*]' timeout 30
+```
+
+Available batch operations:
+
+```sh
+# Set matched values
+fe batch set --file config.json '$.services[*].enabled' false
+
+# Add a key/value pair to matched objects
+fe batch put --file config.json '$.services[*]' timeout 30
+
+# Overwrite an existing key, or only add missing keys
+fe batch put --file config.json '$.services[*]' timeout 30 --overwrite
+fe batch put --file config.json '$.services[*]' timeout 30 --if-missing
+
+# Delete matched nodes or object members selected by key
+fe batch delete --file config.json '$.services[*].legacy'
+fe batch delete --file config.json '$.services[*]' --key-regex '^x-legacy-'
+
+# Replace text inside matched string values
+fe batch replace --file config.json '$.services[*].image' '^old/' 'new/'
+
+# Append to matched arrays
+fe batch append --file config.json '$.groups[*].members' '"agent"'
+```
+
+Preview any batch operation by inserting `preview` before `batch`:
+
+```sh
+fe preview batch delete \
+  --root ./configs \
+  --include '**/*.yaml' \
+  '$.services[*]' \
+  --key-regex '^x-legacy-'
+```
+
+Preview prints the files that would change and their minimal diffs. It never
+writes files.
 
 ## Path Support
 

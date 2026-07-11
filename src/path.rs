@@ -27,6 +27,14 @@ impl JsonPath {
         &self.segments
     }
 
+    pub(crate) fn from_segments(segments: Vec<PathSegment>) -> Self {
+        let mut original = "$".to_string();
+        for segment in &segments {
+            original.push_str(&segment.to_string());
+        }
+        Self { original, segments }
+    }
+
     pub fn is_deterministic(&self) -> bool {
         self.segments
             .iter()

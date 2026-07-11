@@ -40,6 +40,16 @@ pub enum FormatEditError {
     },
     #[error("insert path must end with an array index, such as $.items[0]")]
     InsertNeedsIndex,
+    #[error("batch selection did not find any files; pass --file or --root with --include")]
+    BatchNoFiles,
+    #[error("invalid regular expression: {0}")]
+    InvalidRegex(String),
+    #[error("batch target is not an object: {0}")]
+    BatchTargetNotObject(String),
+    #[error("batch target is not a string: {0}")]
+    BatchTargetNotString(String),
+    #[error("key already exists at {0}; use --overwrite or --if-missing")]
+    KeyAlreadyExists(String),
 }
 
 impl FormatEditError {
@@ -58,6 +68,11 @@ impl FormatEditError {
             Self::InvalidValue { .. } => "invalid_value",
             Self::IndexOutOfBounds { .. } => "index_out_of_bounds",
             Self::InsertNeedsIndex => "insert_needs_index",
+            Self::BatchNoFiles => "batch_no_files",
+            Self::InvalidRegex(_) => "invalid_regex",
+            Self::BatchTargetNotObject(_) => "batch_target_not_object",
+            Self::BatchTargetNotString(_) => "batch_target_not_string",
+            Self::KeyAlreadyExists(_) => "key_already_exists",
         }
     }
 
@@ -133,10 +148,35 @@ impl FormatEditError {
                 );
                 object.insert("len".to_string(), serde_json::Value::Number((*len).into()));
             }
-            Self::MissingValue | Self::ConflictingValueSources | Self::InsertNeedsIndex => {}
+            Self::InvalidRegex(reason) => {
+                object.insert(
+                    "reason".to_string(),
+                    serde_json::Value::String(reason.clone()),
+                );
+            }
+            Self::BatchTargetNotObject(path)
+            | Self::BatchTargetNotString(path)
+            | Self::KeyAlreadyExists(path) => {
+                object.insert("path".to_string(), serde_json::Value::String(path.clone()));
+            }
+            Self::MissingValue
+            | Self::ConflictingValueSources
+            | Self::InsertNeedsIndex
+            | Self::BatchNoFiles => {}
         }
 
         serde_json::Value::Object(object)
+    }
+}
+
+pub fn value_type(value: &serde_json::Value) -> &'static str {
+    match value {
+        serde_json::Value::Null => "null",
+        serde_json::Value::Bool(_) => "bool",
+        serde_json::Value::Number(_) => "number",
+        serde_json::Value::String(_) => "string",
+        serde_json::Value::Array(_) => "array",
+        serde_json::Value::Object(_) => "object",
     }
 }
 
@@ -164,16 +204,5 @@ mod tests {
                 "found": "string"
             })
         );
-    }
-}
-
-pub fn value_type(value: &serde_json::Value) -> &'static str {
-    match value {
-        serde_json::Value::Null => "null",
-        serde_json::Value::Bool(_) => "bool",
-        serde_json::Value::Number(_) => "number",
-        serde_json::Value::String(_) => "string",
-        serde_json::Value::Array(_) => "array",
-        serde_json::Value::Object(_) => "object",
     }
 }

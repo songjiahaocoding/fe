@@ -10,17 +10,17 @@ pub fn get<'value>(value: &'value Value, path: &JsonPath) -> Vec<&'value Value> 
         for candidate in matches {
             match segment {
                 PathSegment::Key(key) => {
-                    if let Value::Object(object) = candidate {
-                        if let Some(value) = object.get(key) {
-                            next.push(value);
-                        }
+                    if let Value::Object(object) = candidate
+                        && let Some(value) = object.get(key)
+                    {
+                        next.push(value);
                     }
                 }
                 PathSegment::Index(index) => {
-                    if let Value::Array(array) = candidate {
-                        if let Some(index) = resolve_existing_index(*index, array.len()) {
-                            next.push(&array[index]);
-                        }
+                    if let Value::Array(array) = candidate
+                        && let Some(index) = resolve_existing_index(*index, array.len())
+                    {
+                        next.push(&array[index]);
                     }
                 }
                 PathSegment::Wildcard => match candidate {

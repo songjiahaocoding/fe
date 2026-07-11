@@ -1,3 +1,4 @@
+pub mod batch;
 pub mod cli;
 pub mod edit;
 pub mod error;
@@ -8,7 +9,7 @@ pub mod query;
 use std::ffi::OsString;
 
 use clap::Parser;
-use cli::{Cli, Command, ErrorFormat};
+use cli::{Cli, Command, ErrorFormat, PreviewCommand};
 use error::Result;
 use format::{load_document, parse_format, parse_input_value, print_value, save_document};
 
@@ -74,6 +75,11 @@ fn execute(cli: Cli) -> Result<()> {
     match cli.command {
         Command::Version => {
             println!("fe {}", env!("CARGO_PKG_VERSION"));
+        }
+        Command::Preview { command } => execute_preview(command)?,
+        Command::Batch { command } => {
+            let plan = batch::build(command)?;
+            batch::apply(&plan)?;
         }
         Command::Get {
             file,
@@ -182,5 +188,96 @@ fn execute(cli: Cli) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn execute_preview(command: PreviewCommand) -> Result<()> {
+    use std::fs;
+
+    let (file, format, document) = match command {
+        PreviewCommand::Batch { command } => {
+            let plan = batch::build(command)?;
+            batch::print_preview(&plan);
+            return Ok(());
+        }
+        PreviewCommand::Set {
+            file,
+            path,
+            value,
+            value_file,
+            format,
+            raw,
+            no_create,
+        } => {
+            let format = parse_format(file.as_path(), format)?;
+            let mut document = load_document(file.as_path(), format)?;
+            let path = path.parse()?;
+            let value = parse_input_value(value, value_file.as_deref(), raw)?;
+            edit::set(&mut document, &path, value, !no_create)?;
+            (file, format, document)
+        }
+        PreviewCommand::Delete {
+            file,
+            path,
+            format,
+            ignore_missing,
+        } => {
+            let format = parse_format(file.as_path(), format)?;
+            let mut document = load_document(file.as_path(), format)?;
+            let path = path.parse()?;
+            match edit::delete(&mut document, &path) {
+                Ok(()) => {}
+                Err(error::FormatEditError::PathNotFound(_)) if ignore_missing => {}
+                Err(err) => return Err(err),
+            }
+            (file, format, document)
+        }
+        PreviewCommand::Append {
+            file,
+            path,
+            value,
+            value_file,
+            format,
+            raw,
+            create,
+        } => {
+            let format = parse_format(file.as_path(), format)?;
+            let mut document = load_document(file.as_path(), format)?;
+            let path = path.parse()?;
+            let value = parse_input_value(value, value_file.as_deref(), raw)?;
+            edit::append(&mut document, &path, value, create)?;
+            (file, format, document)
+        }
+        PreviewCommand::Insert {
+            file,
+            path,
+            value,
+            value_file,
+            format,
+            raw,
+        } => {
+            let format = parse_format(file.as_path(), format)?;
+            let mut document = load_document(file.as_path(), format)?;
+            let path = path.parse()?;
+            let value = parse_input_value(value, value_file.as_deref(), raw)?;
+            edit::insert(&mut document, &path, value)?;
+            (file, format, document)
+        }
+    };
+
+    let before = fs::read_to_string(&file)?;
+    let after = format::serialize(format, &document)?;
+    let display = file.display().to_string();
+    let diff = similar::TextDiff::from_lines(&before, &after)
+        .unified_diff()
+        .context_radius(3)
+        .header(&display, &display)
+        .to_string();
+
+    if diff.is_empty() {
+        println!("No changes: {display}");
+    } else {
+        print!("{diff}");
+    }
     Ok(())
 }

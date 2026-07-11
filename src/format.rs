@@ -115,7 +115,7 @@ pub fn parse_input_value(
     }
 }
 
-fn serialize(format: DocumentFormat, value: &Value) -> Result<String> {
+pub fn serialize(format: DocumentFormat, value: &Value) -> Result<String> {
     match format {
         DocumentFormat::Json => Ok(format!("{}\n", serde_json::to_string_pretty(value)?)),
         DocumentFormat::Yaml => Ok(serde_yaml::to_string(value)?),
